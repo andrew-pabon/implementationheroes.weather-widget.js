@@ -1,4 +1,4 @@
-/* Staffbase Weather – profile location • no API key needed  */
+/* Staffbase Weather – profile location  (no API key) */
 (function () {
 
   /* ---------- tiny DOM helper ---------- */
@@ -25,26 +25,24 @@
     }
   };
 
-  /* ---------- helpers (Open-Meteo, key-less) ---------- */
-  const gUrl = "https://geocoding-api.open-meteo.com/v1/search";
-  const wUrl = "https://api.open-meteo.com/v1/forecast";
-  const WTXT = {0:"Clear",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Freezing fog",51:"Drizzle",53:"Drizzle",55:"Drizzle",61:"Rain",63:"Rain",65:"Rain",71:"Snow",73:"Snow",75:"Snow",80:"Rain showers",81:"Rain showers",82:"Rain showers",95:"Thunderstorm"};
-
-  async function geocode(city){
-    const u=new URL(gUrl);u.searchParams.set("name",city);u.searchParams.set("count","1");
-    const r=await fetch(u);if(!r.ok)throw new Error("Geo "+r.status);const j=await r.json();
-    if(!j.results?.length)throw new Error("City not found");return j.results[0];
+  /* ---------- helper functions (Open-Meteo, key-less) ---------- */
+  async function geocode(city) {
+    const u=new URL("https://geocoding-api.open-meteo.com/v1/search");
+    u.searchParams.set("name",city);u.searchParams.set("count","1");
+    const r=await fetch(u);if(!r.ok)throw new Error("Geo "+r.status);
+    const j=await r.json();if(!j.results?.length)throw new Error("City not found");
+    return j.results[0];
   }
-
   async function weather(lat,lon){
-    const u=new URL(wUrl);
+    const u=new URL("https://api.open-meteo.com/v1/forecast");
     u.searchParams.set("latitude",lat);u.searchParams.set("longitude",lon);
     u.searchParams.set("current","temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m");
     u.searchParams.set("timezone","auto");
     const r=await fetch(u);if(!r.ok)throw new Error("Wx "+r.status);return r.json();
   }
+  const WTXT={0:"Clear",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Freezing fog",51:"Drizzle",53:"Drizzle",55:"Drizzle",61:"Rain",63:"Rain",65:"Rain",71:"Snow",73:"Snow",75:"Snow",80:"Rain showers",81:"Rain showers",82:"Rain showers",95:"Thunderstorm"};
 
-  /* ---------- factory (simplest signature) ---------- */
+  /* ---------- factory (required signature) ---------- */
   function factory(el, ctx){
     const cfg=ctx.config||{};
     let units = cfg.defaultUnits==="metric"?"metric":"imperial";
@@ -55,12 +53,11 @@
       if(state.loading){el.append("Loading…");return;}
       if(state.error){el.append("Error: "+state.error);return;}
 
-      const d=state.data;
-      const useF = units==="imperial";
+      const d=state.data, useF=units==="imperial";
       el.appendChild(h("div",{style:{fontFamily:"system-ui"}},[
         h("div",{style:{fontWeight:600,fontSize:"18px"}},[d.name+", "+d.country]),
         h("div",{style:{color:"#6b7280",fontSize:"12px"}},[d.local]),
-        h("div",{style:{fontSize:"48px",fontWeight:700}},[
+        h("div",{style:{fontSize:"48px",fontWeight:700,margin:"8px 0"}},[
           Math.round(useF?d.tempF:d.tempC)+"°"+(useF?"F":"C")
         ]),
         h("div",null,[d.text]),
@@ -85,16 +82,12 @@
         const g=await geocode(city);
         const w=await weather(g.latitude,g.longitude);
         const cur=w.current;
-        state={
-          loading:false,
-          data:{
-            name:g.name,country:g.country,
-            local:new Date().toLocaleString("en-US",{timeZone:w.timezone}),
-            tempC:cur.temperature_2m,tempF:cur.temperature_2m*9/5+32,
-            windKph:cur.wind_speed_10m,windMph:cur.wind_speed_10m/1.609,
-            humidity:cur.relative_humidity_2m,text:WTXT[cur.weather_code]||"Weather"
-          }
-        };
+        state={loading:false,data:{
+          name:g.name,country:g.country,local:new Date().toLocaleString("en-US",{timeZone:w.timezone}),
+          tempC:cur.temperature_2m,tempF:cur.temperature_2m*9/5+32,
+          windKph:cur.wind_speed_10m,windMph:cur.wind_speed_10m/1.609,
+          humidity:cur.relative_humidity_2m,text:WTXT[cur.weather_code]||"Weather"
+        }};
       }catch(e){state={loading:false,error:e.message||"failed"};}render();
     };
 
@@ -102,13 +95,14 @@
     return{destroy(){el.innerHTML="";}};
   }
 
-  /* ---------- required top-level registration ---------- */
+  /* ---------- ONE required top-level call ---------- */
   window.defineBlock({
-    author:"Implementation Heroes",
-    version:"0.1.0",
-    blockDefinition:{
-      name:"weather-profile-widget",
-      label:"Weather – profile location",
+    author: "Implementation Heroes",
+    version: "0.1.0",
+    blockDefinition: {
+      name:  "weather-profile-widget",
+      label: "Weather – profile location",
+      blockLevel: "block",          // <--- this field is mandatory
       factory,
       configurationSchema
     }
