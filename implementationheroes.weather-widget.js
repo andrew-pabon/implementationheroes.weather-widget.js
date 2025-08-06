@@ -243,21 +243,18 @@
   };
 
   const blockDefinition = {
-    name: "weather-widget",
-    label: "Weather - profile location",
-    factory,
+  // ---------- register with Staffbase ----------
+  window.defineBlock({
+    name: "weather-profile-widget",
+    label: "Weather – profile location",
     blockLevel: "block",
-    configurationSchema
-  };
 
-  const external = { blockDefinition, author: "Implementation Heroes", version: "0.1.0" };
+    // Factory must follow (Base, widgetApi) signature
+    factory,
 
-  // Register now or as soon as Staffbase provides defineBlock
-  (function tryRegister() {
-    if (typeof window !== "undefined" && typeof window.defineBlock === "function") {
-      window.defineBlock(external);
-    } else {
-      setTimeout(tryRegister, 50);
-    }
-  })();
+    // Settings schema shown in Studio
+    configurationSchema,
+
+    // Optional translations / icon could go here
+  });
 })();
